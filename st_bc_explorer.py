@@ -15,7 +15,7 @@ with st.form("input_form"):
                            help='url of bandcamp release (track or album)')
     prioritise_recent_purchasers = st.radio('prioritise recent purchasers?', ('no', 'yes'), help='yes: the most recent purchasers of the release \n \n no: random purchasers of the release')
     purchase_priority = st.radio("what would you like to prioritise in purchases?", ('random', 'recent', 'top'), help='random: random purchases from the chosen purchasers  \n \n recent: recent purchases from the chosen purchasers \n \n top: releases that are commonly found in the chosen purcharsers purchases. set variability higher for better results. might be slow' )
-    variability = [18, 12, 9, 6, 4, 3, 2, 1][st.slider('from 1-8, how much variability?', 1, 8, 1, help='go on, slide it to the right. make take longer') - 1]
+    variability = [18, 12, 9, 6, 4, 3, 2, 1][st.slider('wildness', 1, 8, 1, help='go on, slide it to the right. make take longer') - 1]
     submitted = st.form_submit_button("Submit")
 
 if bc_url != '':
