@@ -73,9 +73,6 @@ if bc_url != '':
                     filtered_list.append(tralbum)
                     seen.add(tralbum['tralbum_id'])
             selected_tralbums = filtered_list
-            st.write(selected_tralbums[0])
-            st.write(freq)
-            st.write(len(selected_tralbums))
 
         html_insert = ''
         for tralbum in selected_tralbums:
