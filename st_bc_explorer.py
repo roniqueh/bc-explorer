@@ -62,7 +62,6 @@ if bc_url != '':
                 selected_tralbums += random.sample(tralbums, min(tralbums_per_fan, len(tralbums)))
 
         if purchase_priority == 'top':
-            st.write(len(selected_tralbums))
             most_common_tralbums = Counter(item['tralbum_id'] for item in selected_tralbums).most_common(36)
             mct_ids = [item[0] for item in most_common_tralbums]
             freq = [item[1] for item in most_common_tralbums]
