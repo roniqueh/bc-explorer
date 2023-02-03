@@ -18,7 +18,7 @@ with st.form("input_form"):
 if bc_url != '':
     with st.spinner(text='hold on, goodness incoming :)'):
         page = requests.get(bc_url)
-        soup = BeautifulSoup(page.text, features="lxml", parse_only=SoupStrainer("meta"))
+        soup = BeautifulSoup(page.text, "html.parser", parse_only=SoupStrainer("meta"))
         try:
             bc_info = ast.literal_eval(soup.find(attrs={"name": "bc-page-properties"})['content'])
         except TypeError:
