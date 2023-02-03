@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup, SoupStrainer
 import streamlit as st
 
 st.title('Bandcamp Explorer :sunglasses:')
+st.markdown('[contact for bugs/suggestions :)](https://instagram.com/rxniqueh)')
 
 with st.form("input_form"):
     bc_url = st.text_input('what bandcamp release do you want to explore?',
