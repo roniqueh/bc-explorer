@@ -3,16 +3,18 @@ import os
 import requests
 import ast
 import random
+from collections import Counter
 from bs4 import BeautifulSoup, SoupStrainer
 import streamlit as st
 
 st.title('Bandcamp Explorer :sunglasses:')
 
 with st.form("input_form"):
-    bc_url = st.text_input('what bandcamp release do you want to explore?', help='url of bandcamp release (track or album)')
-    variability = st.slider('from 1-8, how much variability?', 1, 8, 1)
-    prioritise_recent_purchasers = st.checkbox('prioritise recent purchasers?', value=False)
-    prioritise_recent_purchases = st.checkbox('prioritise recent purchases?', value=False)
+    bc_url = st.text_input('what bandcamp release do you want to explore?',
+                           help='url of bandcamp release (track or album)')
+    prioritise_recent_purchasers = st.radio('prioritise recent purchasers?', ('no', 'yes'), help='yes: the most recent purchasers of the release \n \n no: random purchasers of the release')
+    purchase_priority = st.radio("what would you like to prioritise in purchases?", ('random', 'recent', 'top'), help='random: random purchases from the chosen purchasers  \n \n recent: recent purchases from the chosen purchasers \n \n top: releases that are commonly found in the chosen purcharsers purchases. set variability higher for better results. might be slow' )
+    variability = [18, 12, 9, 6, 4, 3, 2, 1][st.slider('from 1-8, how much variability?', 1, 8, 1, help='go on, slide it to the right. make take longer') - 1]s
     submitted = st.form_submit_button("Submit")
 
 if bc_url != '':
@@ -36,12 +38,12 @@ if bc_url != '':
         if len(fans) == 0:
             st.warning("nobody's bought this release :( try another one")
             st.stop()
-
-        if prioritise_recent_purchasers:
+        if prioritise_recent_purchasers == 'yes':
             selected_fans = fans[:min(36 // variability, len(fans))]
         else:
             selected_fans = random.sample(fans, min(36 // variability, len(fans)))
         tralbums_per_fan = 36 // len(selected_fans)
+
         selected_tralbums = []
         for fan in selected_fans:
             url = 'https://bandcamp.com/api/fancollection/1/collection_items'
@@ -49,11 +51,31 @@ if bc_url != '':
             response = requests.post(url, data=data)
             parsed_response = response.json()
             tralbums = parsed_response['items']
+            desired_keys = ["item_type", "tralbum_id", "item_url", "item_title", "band_name"]
+            tralbums = [{key: dict[key] for key in desired_keys} for dict in tralbums]
             tralbums = [tralbum for tralbum in tralbums if tralbum['tralbum_id'] != query_tralbum_id]
-            if prioritise_recent_purchases:
+            if purchase_priority == 'top':
+                selected_tralbums += tralbums
+            elif purchase_priority == 'recent':
                 selected_tralbums += tralbums[:min(tralbums_per_fan, len(tralbums))]
             else:
                 selected_tralbums += random.sample(tralbums, min(tralbums_per_fan, len(tralbums)))
+
+        if purchase_priority == 'top':
+            st.write(len(selected_tralbums))
+            most_common_tralbums = Counter(item['tralbum_id'] for item in selected_tralbums).most_common(36)
+            mct_ids = [item[0] for item in most_common_tralbums]
+            freq = [item[1] for item in most_common_tralbums]
+            seen = set()
+            filtered_list = []
+            for tralbum in selected_tralbums:
+                if tralbum['tralbum_id'] in mct_ids and tralbum['tralbum_id'] not in seen:
+                    filtered_list.append(tralbum)
+                    seen.add(tralbum['tralbum_id'])
+            selected_tralbums = filtered_list
+            st.write(selected_tralbums[0])
+            st.write(freq)
+            st.write(len(selected_tralbums))
 
         html_insert = ''
         for tralbum in selected_tralbums:
@@ -71,4 +93,3 @@ if bc_url != '':
         st.success('enjoy!')
 else:
     st.stop()
-
