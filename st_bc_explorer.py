@@ -20,7 +20,7 @@ async def get_fan_tralbums(session, fan_data, purchase_priority, query_tralbum_i
         if purchase_priority == 'top':
             selected_tralbums = tralbums
         elif purchase_priority == 'recent':
-            selected_tralbums = tralbums[tralbums_per_fan]
+            selected_tralbums = tralbums[:tralbums_per_fan]
         else:
             selected_tralbums = random.sample(tralbums, min(tralbums_per_fan, len(tralbums)))
         return selected_tralbums
