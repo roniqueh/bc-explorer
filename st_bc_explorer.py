@@ -52,9 +52,9 @@ if bc_url != '':
             response = requests.post(url, data=data)
             parsed_response = response.json()
             tralbums = parsed_response['items']
-            desired_keys = ["item_type", "tralbum_id", "item_url", "item_title", "band_name"]
+            desired_keys = ["item_type", "tralbum_id", "item_url", "item_title", "band_name", "num_streamable_tracks"]
             tralbums = [{key: dict[key] for key in desired_keys} for dict in tralbums]
-            tralbums = [tralbum for tralbum in tralbums if tralbum['tralbum_id'] != query_tralbum_id]
+            tralbums = [tralbum for tralbum in tralbums if tralbum['tralbum_id'] != query_tralbum_id and tralbum['num_streamable_tracks'] != 0]
             if purchase_priority == 'top':
                 selected_tralbums += tralbums
             elif purchase_priority == 'recent':
