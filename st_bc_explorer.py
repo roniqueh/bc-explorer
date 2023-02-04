@@ -1,6 +1,8 @@
 import subprocess
 import os
 import requests
+import asyncio
+import aiohttp
 import ast
 import random
 from collections import Counter
