@@ -13,9 +13,9 @@ st.markdown('[contact for bugs/suggestions :)](https://instagram.com/rxniqueh)')
 with st.form("input_form"):
     bc_url = st.text_input('what bandcamp release do you want to explore?',
                            help='url of bandcamp release (track or album)')
-    prioritise_recent_purchasers = st.radio('prioritise recent purchasers?', ('no', 'yes'), help='yes: the most recent purchasers of the release \n \n no: random purchasers of the release')
-    purchase_priority = st.radio("what would you like to prioritise in purchases?", ('random', 'recent', 'top'), help='random: random purchases from the chosen purchasers  \n \n recent: recent purchases from the chosen purchasers \n \n top: releases that are commonly found in the chosen purcharsers purchases. set variability higher for better results. might be slow' )
-    variability = [18, 12, 9, 6, 4, 3, 2, 1][st.slider('wildness', 1, 8, 1, help='go on, slide it to the right. make take longer') - 1]
+    prioritise_recent_purchasers = st.radio('prioritise recent purchasers?', ('no', 'yes'), help='yes:  recent purchasers of the release \n \n no: random purchasers of the release')
+    purchase_priority = st.radio("what would you like to prioritise in purchases?", ('random', 'recent', 'top'), help='random: random purchases from the chosen purchasers  \n \n recent: recent purchases from the chosen purchasers \n \n top: releases that are commonly found in random purcharsers purchases. set wildness higher for better results. might be slow' )
+    variability = [18, 12, 9, 6, 4, 3, 2, 1][st.slider('wildness', 1, 8, 1) - 1]
     submitted = st.form_submit_button("Submit")
 
 if bc_url != '':
@@ -84,7 +84,14 @@ if bc_url != '':
                            tralbum['item_url'] + '>' + tralbum['item_title'] + ' by ' + tralbum[
                                'band_name'] + '</a></iframe>'
 
-        subtitle_markdown = "results for: [" + query_title + "](" + bc_url + ")"
+        if prioritise_recent_purchasers == 'yes':
+            purchasers = 'recent'
+        else:
+            purchasers = 'random'
+        if purchase_priority =='top':
+            subtitle_markdown = 'purchases commonly found in random purchasers of [' + query_title + "](" + bc_url + ")"
+        else:
+            subtitle_markdown = purchase_priority + " purchases of " + purchasers + " purchasers of [" + query_title + "](" + bc_url + ")"
         st.markdown(subtitle_markdown)
         st.markdown(html_insert, unsafe_allow_html=True)
         st.success('enjoy!')
