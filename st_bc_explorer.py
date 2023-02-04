@@ -10,15 +10,45 @@ import streamlit as st
 st.title('Bandcamp Explorer :sunglasses:')
 st.markdown('[contact for bugs/suggestions :)](https://instagram.com/rxniqueh)')
 
+
+# callback to update query param on selectbox change
+def update_params():
+    st.experimental_set_query_params(option=st.session_state.qp)
+
+
+
 with st.form("input_form"):
+
+    query_params = st.experimental_get_query_params()
+
+    # display for debugging purposes
+    st.write('---', st.experimental_get_query_params())
+
     bc_url = st.text_input('what bandcamp release do you want to explore?',
-                           help='url of bandcamp release (track or album)')
-    prioritise_recent_purchasers = st.radio('prioritise recent purchasers?', ('no', 'yes'), help='yes:  recent purchasers of the release \n \n no: random purchasers of the release')
-    purchase_priority = st.radio("what would you like to prioritise in purchases?", ('random', 'recent', 'top'), help='random: random purchases from the chosen purchasers  \n \n recent: recent purchases from the chosen purchasers \n \n top: releases that are commonly found in random purcharsers purchases. set wildness higher for better results. might be slow' )
-    variability = [18, 12, 9, 6, 4, 3, 2, 1][st.slider('wildness', 1, 8, 1) - 1]
+                           help='url of bandcamp release (track or album)',
+                           value=query_params.get("url", ''),
+                           on_change=update_params)
+
+    prioritise_recent_purchasers = st.radio('prioritise recent purchasers?', ('no', 'yes'),
+                                            help='yes:  recent purchasers of the release \n \n no: random purchasers of the release',
+                                            on_change=update_params)
+
+    purchase_priority = st.radio("what would you like to prioritise in purchases?", ('random', 'recent', 'top'),
+                                 help='random: random purchases from the chosen purchasers  \n \n recent: recent purchases from the chosen purchasers \n \n top: releases that are commonly found in random purcharsers purchases. set wildness higher for better results. might be slow',
+                                    on_change=update_params)
+
+    variability = [18, 12, 9, 6, 4, 3, 2, 1][st.slider('wildness', 1, 8, 1,
+                                                       on_change=update_params) - 1]
+
+
+
     submitted = st.form_submit_button("Submit")
 
 if bc_url != '':
+
+    # @TODO set parameters in url
+    st.experimental_set_query_params(query_params)
+
     with st.spinner(text='hold on, goodness incoming :)'):
         page = requests.get(bc_url)
         soup = BeautifulSoup(page.text, "html.parser", parse_only=SoupStrainer("meta"))
