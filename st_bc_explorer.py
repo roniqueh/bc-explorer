@@ -1,5 +1,3 @@
-import subprocess
-import os
 import requests
 import ast
 import random
@@ -10,51 +8,65 @@ import streamlit as st
 st.title('Bandcamp Explorer :sunglasses:')
 st.markdown('[contact for bugs/suggestions :)](https://instagram.com/rxniqueh)')
 
+# get query params
+query_params = st.experimental_get_query_params()
 
-# callback to update query param on selectbox change
+# flatten lists in query_params
+query_params = {k: (v[0] if len(v) == 1 else v) for k, v in query_params.items()}
+
+
+# callback to update query params
 def update_params():
-    st.experimental_set_query_params(option=st.session_state.qp)
+    # print(st.session_state) # for debugging
+    st.experimental_set_query_params(**st.session_state)
 
+
+# fucton to fetch param index
+def get_option_index(options, value, default = 0):
+    try:
+        return options.index(value)
+    except ValueError:
+        return default
 
 
 with st.form("input_form"):
-
-    query_params = st.experimental_get_query_params()
-
-    # display for debugging purposes
-    st.write('---', st.experimental_get_query_params())
-
     bc_url = st.text_input('what bandcamp release do you want to explore?',
                            help='url of bandcamp release (track or album)',
                            value=query_params.get("url", ''),
-                           on_change=update_params)
+                           key='url')
 
-    prioritise_recent_purchasers = st.radio('prioritise recent purchasers?', ('no', 'yes'),
-                                            help='yes:  recent purchasers of the release \n \n no: random purchasers of the release',
-                                            on_change=update_params)
+    prioritise_recent_purchasers_options = ('no', 'yes')
 
-    purchase_priority = st.radio("what would you like to prioritise in purchases?", ('random', 'recent', 'top'),
-                                 help='random: random purchases from the chosen purchasers  \n \n recent: recent purchases from the chosen purchasers \n \n top: releases that are commonly found in random purcharsers purchases. set wildness higher for better results. might be slow',
-                                    on_change=update_params)
+    prioritise_recent_purchasers = st.radio('prioritise recent purchasers?', prioritise_recent_purchasers_options,
+                                            key='prioritise_recent_purchasers',
+                                            index=get_option_index(prioritise_recent_purchasers_options,
+                                                                   query_params.get('prioritise_recent_purchasers',
+                                                                                    'no')),
+                                            help='yes:  recent purchasers of the release \n \n no: random purchasers of the release')
 
-    variability = [18, 12, 9, 6, 4, 3, 2, 1][st.slider('wildness', 1, 8, 1,
-                                                       on_change=update_params) - 1]
+    purchase_priority_options = ('random', 'recent', 'top')
 
+    purchase_priority = st.radio("what would you like to prioritise in purchases?", purchase_priority_options,
+                                 key='purchase_priority',
+                                 index=get_option_index(purchase_priority_options,
+                                                        query_params.get('purchase_priority', 'random')
+                                 ),
+                                 help='random: random purchases from the chosen purchasers  \n \n recent: recent purchases from the chosen purchasers \n \n top: releases that are commonly found in random purcharsers purchases. set wildness higher for better results. might be slow')
 
+    variability = [18, 12, 9, 6, 4, 3, 2, 1][st.slider('wildness', 1, 8,
+                                                       key='variability',
+                                                       value=int(query_params.get('variability', '1'))) - 1]
 
-    submitted = st.form_submit_button("Submit")
+    submitted = st.form_submit_button("Submit", on_click=update_params)
 
 if bc_url != '':
 
-    # @TODO set parameters in url
-    st.experimental_set_query_params(query_params)
-
     with st.spinner(text='hold on, goodness incoming :)'):
-        page = requests.get(bc_url)
-        soup = BeautifulSoup(page.text, "html.parser", parse_only=SoupStrainer("meta"))
         try:
+            page = requests.get(bc_url)
+            soup = BeautifulSoup(page.text, "html.parser", parse_only=SoupStrainer("meta"))
             bc_info = ast.literal_eval(soup.find(attrs={"name": "bc-page-properties"})['content'])
-        except TypeError:
+        except (TypeError, requests.exceptions.MissingSchema):
             st.warning("please try a bandcamp release link")
             st.stop()
         url_main = bc_url.split('://')[-1].split('/')[0]
@@ -118,7 +130,7 @@ if bc_url != '':
             purchasers = 'recent'
         else:
             purchasers = 'random'
-        if purchase_priority =='top':
+        if purchase_priority == 'top':
             subtitle_markdown = 'purchases commonly found in ' + purchasers + ' purchasers of [' + query_title + "](" + bc_url + ")"
         else:
             subtitle_markdown = purchase_priority + " purchases of " + purchasers + " purchasers of [" + query_title + "](" + bc_url + ")"
