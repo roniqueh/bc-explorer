@@ -89,7 +89,7 @@ if bc_url != '':
         else:
             purchasers = 'random'
         if purchase_priority =='top':
-            subtitle_markdown = 'purchases commonly found in random purchasers of [' + query_title + "](" + bc_url + ")"
+            subtitle_markdown = 'purchases commonly found in ' + purchasers + ' purchasers of [' + query_title + "](" + bc_url + ")"
         else:
             subtitle_markdown = purchase_priority + " purchases of " + purchasers + " purchasers of [" + query_title + "](" + bc_url + ")"
         st.markdown(subtitle_markdown)
