@@ -27,8 +27,8 @@ if bc_url != '':
         except TypeError:
             st.warning("please try a bandcamp release link")
             st.stop()
-        url_prefix = bc_url.split(".com/")[0]
-        url = url_prefix + '.com/api/tralbumcollectors/2/thumbs'
+        url_main = bc_url.split('://')[-1].split('/')[0]
+        url = 'https://' + url_main + '/api/tralbumcollectors/2/thumbs'
         query_title = soup.find(property="og:title")['content']
         query_tralbum_type = bc_info['item_type']
         query_tralbum_id = bc_info['item_id']
