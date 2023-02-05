@@ -141,8 +141,8 @@ def filter_tralbums_by_tag(selected_tralbums, selected_tags):
 
 
 st.title('Bandcamp Explorer :sunglasses:')
-st.markdown('[contact for bugs/suggestions :)](https://instagram.com/rxniqueh)')
-st.markdown('*p.s. mobile users: click in top left for a search tool*')
+st.caption('[contact for bugs/suggestions :)](https://instagram.com/rxniqueh)')
+st.caption('*p.s. mobile users: click in top left for a search tool*')
 
 with st.sidebar:
     query = st.text_input(
@@ -157,12 +157,12 @@ with st.sidebar:
     results_data = [{
         'summary_data': ast.literal_eval(item['data-search']),
         'url': item.find('a')['href'].split('?')[0],
-        'title': item.find(class_="result-info").find(class_='heading').get_text(strip=True)
+        'title': '**' + item.find(class_="result-info").find(class_='heading').get_text(strip=True) + '**'
                  + ' '
-                 + ' '.join([elem for elem in
+                 + '*' +  ' '.join([elem for elem in
                              item.find(class_="result-info").find(class_='subhead').get_text(strip=True).replace('\n',
                                                                                                                  '').split(
-                                 ' ') if elem != ''])
+                                 ' ') if elem != '']) + '*'
     } for item in results]
     results_data = [dict for dict in results_data if dict['summary_data']['type'] in ('a', 't')]
     if len(results_data) == 0 and query_url != "https://bandcamp.com/search?q=":
