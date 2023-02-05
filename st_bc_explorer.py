@@ -181,8 +181,8 @@ variability = [18, 12, 9, 6, 4, 3, 2, 1][input_form.slider('wildness', 1, 8, 1) 
 submitted = input_form.form_submit_button("Submit")
 if submitted and st.session_state['filter_pressed']:
     st.session_state['filter_pressed'] = False
-    # st.session_state['query_title'] = ''
-    # st.session_state['selected_tralbums'] = ''
+    st.session_state['query_title'] = ''
+    st.session_state['selected_tralbums'] = ''
 
 if submitted and not st.session_state['filter_pressed']:
     st.session_state['submit_pressed'] = True
@@ -206,7 +206,6 @@ if st.session_state['submit_pressed'] or st.session_state['filter_pressed']:
         subtitle_markdown = purchase_priority + " purchases of " + purchasers + " purchasers of [" + query_title + "](" + bc_url + ")"
     st.markdown(subtitle_markdown)
     all_tags = sorted(list(set([tag for tralbum in selected_tralbums for tag in tralbum['tags']])))
-    st.write(all_tags)
     filter_form = st.form("filter_form")
     selected_tags = filter_form.multiselect('filter tags', all_tags)
     filtered = filter_form.form_submit_button("filter")
