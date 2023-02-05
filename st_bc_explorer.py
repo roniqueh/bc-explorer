@@ -216,3 +216,4 @@ if st.session_state['submit_pressed'] or st.session_state['filter_pressed']:
         generate_html_markdown(selected_tralbums)
 else:
     st.stop()
+
