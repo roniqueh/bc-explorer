@@ -53,7 +53,7 @@ async def get_tralbum_tags(session, item_url):
         tags = [item.text for item in soup.find_all(class_="tag")]
         return tags
 
-@st.cache(allow_output_mutation=True)
+
 async def create(bc_url, prioritise_recent_purchasers, purchase_priority, variability):
     async with aiohttp.ClientSession() as session:
         try:
@@ -179,8 +179,10 @@ purchase_priority = input_form.radio("what would you like to prioritise in purch
                                      help='random: random purchases from the chosen purchasers  \n \n recent: recent purchases from the chosen purchasers \n \n top: releases that are commonly found in random purcharsers purchases. set wildness higher for better results. might be slow')
 variability = [18, 12, 9, 6, 4, 3, 2, 1][input_form.slider('wildness', 1, 8, 1) - 1]
 submitted = input_form.form_submit_button("Submit")
-if submitted:
+if submitted and st.session_state['filter_pressed']:
     st.session_state['filter_pressed'] = False
+    # st.session_state['query_title'] = ''
+    # st.session_state['selected_tralbums'] = ''
 
 if submitted and not st.session_state['filter_pressed']:
     st.session_state['submit_pressed'] = True
@@ -188,7 +190,6 @@ if submitted and not st.session_state['filter_pressed']:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         selected_tralbums, query_title = loop.run_until_complete(create(bc_url, prioritise_recent_purchasers, purchase_priority, variability))
-        st.success('enjoy!')
         st.session_state['selected_tralbums'] = selected_tralbums
         st.session_state['query_title'] = query_title
 
@@ -204,7 +205,8 @@ if st.session_state['submit_pressed'] or st.session_state['filter_pressed']:
     else:
         subtitle_markdown = purchase_priority + " purchases of " + purchasers + " purchasers of [" + query_title + "](" + bc_url + ")"
     st.markdown(subtitle_markdown)
-    all_tags = set(sorted([tag for tralbum in selected_tralbums for tag in tralbum['tags']]))
+    all_tags = sorted(list(set([tag for tralbum in selected_tralbums for tag in tralbum['tags']])))
+    st.write(all_tags)
     filter_form = st.form("filter_form")
     selected_tags = filter_form.multiselect('filter tags', all_tags)
     filtered = filter_form.form_submit_button("filter")
