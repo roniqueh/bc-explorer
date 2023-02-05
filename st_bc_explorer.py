@@ -3,18 +3,38 @@ import os
 import requests
 import asyncio
 import aiohttp
+from aiohttp.client_exceptions import InvalidURL
 import ast
 import random
 from collections import Counter
 from bs4 import BeautifulSoup, SoupStrainer
 import streamlit as st
 
+if 'bc_url_input' not in st.session_state:
+    st.session_state['bc_url_input'] = ""
+
+if 'submit_pressed' not in st.session_state:
+    st.session_state['submit_pressed'] = False
+
+if 'filter_pressed' not in st.session_state:
+    st.session_state['filter_pressed'] = False
+
+if 'selected_tralbums' not in st.session_state:
+    st.session_state['selected_tralbums'] = ''
+
+if 'query_title' not in st.session_state:
+    st.session_state['query_title'] = ''
+
+
+def button_callback(args):
+    st.session_state['bc_url_input'] = args
+
 
 async def get_fan_tralbums(session, fan_data, purchase_priority, query_tralbum_id, tralbums_per_fan):
     async with session.post('https://bandcamp.com/api/fancollection/1/collection_items', data=fan_data) as response:
         parsed_response = await response.json()
         tralbums = parsed_response['items']
-        desired_keys = ["item_type", "tralbum_id", "item_url", "item_title", "band_name", "num_streamable_tracks"]
+        desired_keys = ("item_type", "tralbum_id", "item_url", "item_title", "band_name", "num_streamable_tracks")
         tralbums = [{key: dict[key] for key in desired_keys} for dict in tralbums]
         tralbums = [tralbum for tralbum in tralbums if
                     tralbum['tralbum_id'] != query_tralbum_id and tralbum['num_streamable_tracks'] != 0]
@@ -27,14 +47,26 @@ async def get_fan_tralbums(session, fan_data, purchase_priority, query_tralbum_i
         return selected_tralbums
 
 
-async def main():
+async def get_tralbum_tags(session, item_url):
+    async with session.get(item_url) as resp:
+        soup = BeautifulSoup(await resp.text(), "html.parser", parse_only=SoupStrainer("a"))
+        tags = [item.text for item in soup.find_all(class_="tag")]
+        return tags
+
+@st.cache(allow_output_mutation=True)
+async def create(bc_url, prioritise_recent_purchasers, purchase_priority, variability):
     async with aiohttp.ClientSession() as session:
-        async with session.get(bc_url) as resp:
-            soup = BeautifulSoup(await resp.text(), "html.parser", parse_only=SoupStrainer("meta"))
         try:
-            bc_info = ast.literal_eval(soup.find(attrs={"name": "bc-page-properties"})['content'])
-        except TypeError:
-            st.warning("please try a bandcamp release link")
+            async with session.get(bc_url) as resp:
+                soup = BeautifulSoup(await resp.text(), "html.parser", parse_only=SoupStrainer("meta"))
+            try:
+                bc_info = ast.literal_eval(soup.find(attrs={"name": "bc-page-properties"})['content'])
+            except TypeError:
+                st.warning("please try a bandcamp release link")
+                st.stop()
+        except InvalidURL:
+            st.warning(
+                "this needs to be a bandcamp release link. to search releases and automatically input links, use the sidebar on the left")
             st.stop()
         url_main = bc_url.split('://')[-1].split('/')[0]
         url = 'https://' + url_main + '/api/tralbumcollectors/2/thumbs'
@@ -72,39 +104,45 @@ async def main():
                     filtered_list.append(tralbum)
                     seen.add(tralbum['tralbum_id'])
             selected_tralbums = filtered_list
+        tasks = []
+        for tralbum in selected_tralbums:
+            tasks.append(get_tralbum_tags(session, tralbum['item_url']))
+        tralbum_tags = await asyncio.gather(*tasks)
 
         html_insert = ''
-        for tralbum in selected_tralbums:
+        for i, tralbum in enumerate(selected_tralbums):
             if tralbum['item_type'] == 'package':
                 tralbum['item_type'] = 'album'
+            tralbum['tags'] = tralbum_tags[i]
             html_insert += '<iframe style="border: 0; width: 200px; height: 200px;" src="https://bandcamp.com/EmbeddedPlayer/' + \
                            tralbum['item_type'] + '=' + str(tralbum[
                                                                 'tralbum_id']) + '/size=large/bgcol=333333/linkcol=0f91ff/minimal=true/transparent=true/" seamless><a href=' + \
                            tralbum['item_url'] + '>' + tralbum['item_title'] + ' by ' + tralbum[
                                'band_name'] + '</a></iframe>'
+        return selected_tralbums, query_title
 
-        if prioritise_recent_purchasers == 'yes':
-            purchasers = 'recent'
-        else:
-            purchasers = 'random'
-        if purchase_priority == 'top':
-            subtitle_markdown = 'purchases commonly found in ' + purchasers + ' purchasers of [' + query_title + "](" + bc_url + ")"
-        else:
-            subtitle_markdown = purchase_priority + " purchases of " + purchasers + " purchasers of [" + query_title + "](" + bc_url + ")"
-        st.markdown(subtitle_markdown)
-        st.markdown(html_insert, unsafe_allow_html=True)
+def generate_html_markdown(selected_tralbums):
+    html_insert = ''
+    for tralbum in selected_tralbums:
+        html_insert += '<iframe style="border: 0; width: 200px; height: 200px;" src="https://bandcamp.com/EmbeddedPlayer/' + \
+                       tralbum['item_type'] + '=' + str(tralbum[
+                                                            'tralbum_id']) + '/size=large/bgcol=333333/linkcol=0f91ff/minimal=true/transparent=true/" seamless><a href=' + \
+                       tralbum['item_url'] + '>' + tralbum['item_title'] + ' by ' + tralbum[
+                           'band_name'] + '</a></iframe>'
+    return st.markdown(html_insert, unsafe_allow_html=True)
+
+def filter_tralbums_by_tag(selected_tralbums, selected_tags):
+    if selected_tags == []:
+        filtered_tralbums = selected_tralbums
+    else:
+        filtered_tralbums = [tralbum for tralbum in selected_tralbums if
+                             len(set(tralbum['tags']).intersection(selected_tags)) > 0]
+    return filtered_tralbums
 
 
 st.title('Bandcamp Explorer :sunglasses:')
 st.markdown('[contact for bugs/suggestions :)](https://instagram.com/rxniqueh)')
 st.markdown('*p.s. mobile users: click in top left for a search tool*')
-
-
-if 'bc_url_input' not in st.session_state:
-    st.session_state['bc_url_input'] = ""
-def button_callback(args):
-    st.session_state['bc_url_input'] = args
-
 
 with st.sidebar:
     query = st.text_input(
@@ -132,21 +170,50 @@ with st.sidebar:
     for result in results_data:
         st.button(result['title'], type="primary", on_click=button_callback, args=(result['url'],))
 
-with st.form("input_form"):
-    bc_url = st.text_input('what bandcamp release do you want to explore?',
-                           help='url of bandcamp release (track or album)', key='bc_url_input')
-    prioritise_recent_purchasers = st.radio('prioritise recent purchasers?', ('no', 'yes'),
-                                            help='yes:  recent purchasers of the release \n \n no: random purchasers of the release')
-    purchase_priority = st.radio("what would you like to prioritise in purchases?", ('random', 'recent', 'top'),
-                                 help='random: random purchases from the chosen purchasers  \n \n recent: recent purchases from the chosen purchasers \n \n top: releases that are commonly found in random purcharsers purchases. set wildness higher for better results. might be slow')
-    variability = [18, 12, 9, 6, 4, 3, 2, 1][st.slider('wildness', 1, 8, 1) - 1]
-    submitted = st.form_submit_button("Submit")
+input_form = st.form("input_form")
+bc_url = input_form.text_input('what bandcamp release do you want to explore?',
+                               help='url of bandcamp release (track or album)', key='bc_url_input')
+prioritise_recent_purchasers = input_form.radio('prioritise recent purchasers?', ('no', 'yes'),
+                                                help='yes:  recent purchasers of the release \n \n no: random purchasers of the release')
+purchase_priority = input_form.radio("what would you like to prioritise in purchases?", ('random', 'recent', 'top'),
+                                     help='random: random purchases from the chosen purchasers  \n \n recent: recent purchases from the chosen purchasers \n \n top: releases that are commonly found in random purcharsers purchases. set wildness higher for better results. might be slow')
+variability = [18, 12, 9, 6, 4, 3, 2, 1][input_form.slider('wildness', 1, 8, 1) - 1]
+submitted = input_form.form_submit_button("Submit")
+if submitted:
+    st.session_state['filter_pressed'] = False
 
-if bc_url != '' and submitted:
+if submitted and not st.session_state['filter_pressed']:
+    st.session_state['submit_pressed'] = True
     with st.spinner(text='hold on, goodness incoming :)'):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(main())
+        selected_tralbums, query_title = loop.run_until_complete(create(bc_url, prioritise_recent_purchasers, purchase_priority, variability))
         st.success('enjoy!')
+        st.session_state['selected_tralbums'] = selected_tralbums
+        st.session_state['query_title'] = query_title
+
+if st.session_state['submit_pressed'] or st.session_state['filter_pressed']:
+    query_title = st.session_state['query_title']
+    selected_tralbums = st.session_state['selected_tralbums']
+    if prioritise_recent_purchasers == 'yes':
+        purchasers = 'recent'
+    else:
+        purchasers = 'random'
+    if purchase_priority == 'top':
+        subtitle_markdown = 'purchases commonly found in ' + purchasers + ' purchasers of [' + query_title + "](" + bc_url + ")"
+    else:
+        subtitle_markdown = purchase_priority + " purchases of " + purchasers + " purchasers of [" + query_title + "](" + bc_url + ")"
+    st.markdown(subtitle_markdown)
+    all_tags = set(sorted([tag for tralbum in selected_tralbums for tag in tralbum['tags']]))
+    filter_form = st.form("filter_form")
+    selected_tags = filter_form.multiselect('filter tags', all_tags)
+    filtered = filter_form.form_submit_button("filter")
+    if filtered:
+        st.session_state['filter_pressed'] = True
+        filtered_tralbums = filter_tralbums_by_tag(selected_tralbums, selected_tags)
+        generate_html_markdown(filtered_tralbums)
+    else:
+        generate_html_markdown(selected_tralbums)
 else:
     st.stop()
+
