@@ -9,6 +9,7 @@ from collections import Counter
 from bs4 import BeautifulSoup, SoupStrainer
 import streamlit as st
 
+
 async def get_fan_tralbums(session, fan_data, purchase_priority, query_tralbum_id, tralbums_per_fan):
     async with session.post('https://bandcamp.com/api/fancollection/1/collection_items', data=fan_data) as response:
         parsed_response = await response.json()
@@ -24,6 +25,8 @@ async def get_fan_tralbums(session, fan_data, purchase_priority, query_tralbum_i
         else:
             selected_tralbums = random.sample(tralbums, min(tralbums_per_fan, len(tralbums)))
         return selected_tralbums
+
+
 async def main():
     async with aiohttp.ClientSession() as session:
         async with session.get(bc_url) as resp:
@@ -91,18 +94,55 @@ async def main():
         st.markdown(subtitle_markdown)
         st.markdown(html_insert, unsafe_allow_html=True)
 
+
 st.title('Bandcamp Explorer :sunglasses:')
 st.markdown('[contact for bugs/suggestions :)](https://instagram.com/rxniqueh)')
+st.markdown('*p.s. mobile users: click in top left for a search tool*')
+
+
+if 'bc_url_input' not in st.session_state:
+    st.session_state['bc_url_input'] = ""
+def button_callback(args):
+    st.session_state['bc_url_input'] = args
+
+
+with st.sidebar:
+    query = st.text_input(
+        "bandcamp search"
+    ).replace('+', '2B').replace(' ', '+').replace('&', '%26').replace('=', '%3D').replace('@', '%40').replace("'",
+                                                                                                               "%27")
+    query_url = "https://bandcamp.com/search?q=" + query
+    s = requests.session()
+    response = s.get(query_url)
+    soup = BeautifulSoup(response.text, "html.parser", parse_only=SoupStrainer("li"))
+    results = soup.find_all(class_="searchresult data-search")
+    results_data = [{
+        'summary_data': ast.literal_eval(item['data-search']),
+        'url': item.find('a')['href'].split('?')[0],
+        'title': item.find(class_="result-info").find(class_='heading').get_text(strip=True)
+                 + ' '
+                 + ' '.join([elem for elem in
+                             item.find(class_="result-info").find(class_='subhead').get_text(strip=True).replace('\n',
+                                                                                                                 '').split(
+                                 ' ') if elem != ''])
+    } for item in results]
+    results_data = [dict for dict in results_data if dict['summary_data']['type'] in ('a', 't')]
+    if len(results_data) == 0 and query_url != "https://bandcamp.com/search?q=":
+        st.write("no results found, try something different")
+    for result in results_data:
+        st.button(result['title'], type="primary", on_click=button_callback, args=(result['url'],))
 
 with st.form("input_form"):
     bc_url = st.text_input('what bandcamp release do you want to explore?',
-                           help='url of bandcamp release (track or album)')
-    prioritise_recent_purchasers = st.radio('prioritise recent purchasers?', ('no', 'yes'), help='yes:  recent purchasers of the release \n \n no: random purchasers of the release')
-    purchase_priority = st.radio("what would you like to prioritise in purchases?", ('random', 'recent', 'top'), help='random: random purchases from the chosen purchasers  \n \n recent: recent purchases from the chosen purchasers \n \n top: releases that are commonly found in random purcharsers purchases. set wildness higher for better results. might be slow' )
+                           help='url of bandcamp release (track or album)', key='bc_url_input')
+    prioritise_recent_purchasers = st.radio('prioritise recent purchasers?', ('no', 'yes'),
+                                            help='yes:  recent purchasers of the release \n \n no: random purchasers of the release')
+    purchase_priority = st.radio("what would you like to prioritise in purchases?", ('random', 'recent', 'top'),
+                                 help='random: random purchases from the chosen purchasers  \n \n recent: recent purchases from the chosen purchasers \n \n top: releases that are commonly found in random purcharsers purchases. set wildness higher for better results. might be slow')
     variability = [18, 12, 9, 6, 4, 3, 2, 1][st.slider('wildness', 1, 8, 1) - 1]
     submitted = st.form_submit_button("Submit")
 
-if bc_url != '':
+if bc_url != '' and submitted:
     with st.spinner(text='hold on, goodness incoming :)'):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
