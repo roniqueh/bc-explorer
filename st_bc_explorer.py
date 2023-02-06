@@ -10,6 +10,11 @@ from collections import Counter
 from bs4 import BeautifulSoup, SoupStrainer
 import streamlit as st
 
+st.set_page_config(
+    page_title="Bandcamp Explorer",
+    page_icon=":musical_note:"
+)
+
 if 'bc_url_input' not in st.session_state:
     st.session_state['bc_url_input'] = ""
 
@@ -29,6 +34,36 @@ if 'query_title' not in st.session_state:
 def button_callback(args):
     st.session_state['bc_url_input'] = args
 
+
+async def get_info_from_tralbum(session, bc_url):
+    try:
+        async with session.get(bc_url) as resp:
+            soup_meta = BeautifulSoup(await resp.text(), "html.parser", parse_only=SoupStrainer("meta"))
+        try:
+            bc_info = ast.literal_eval(soup_meta.find(attrs={"name": "bc-page-properties"})['content'])
+        except TypeError:
+            st.warning("please try a bandcamp release link")
+            st.stop()
+    except InvalidURL:
+        st.warning(
+            "this needs to be a bandcamp release link. to search releases and automatically input links, use the sidebar on the left")
+        st.stop()
+    url_main = bc_url.split('://')[-1].split('/')[0]
+    url = 'https://' + url_main + '/api/tralbumcollectors/2/thumbs'
+    query_title = soup_meta.find(property="og:title")['content']
+    query_tralbum_type = bc_info['item_type']
+    query_tralbum_id = bc_info['item_id']
+    data = '{"tralbum_type":"' + query_tralbum_type + '","tralbum_id":' + str(query_tralbum_id) + ',"count":500}'
+    async with session.post(url, data=data) as resp:
+        parsed_response = await resp.json()
+    fans = [item['fan_id'] for item in parsed_response['results']]
+    if query_tralbum_type == "t":
+        async with session.get(bc_url) as resp:
+            soup_h3 = BeautifulSoup(await resp.text(), "html.parser", parse_only=SoupStrainer("h3"))
+            album_url = 'https://' + url_main + soup_h3.find('a')['href']
+    else:
+        album_url = None
+    return query_title, query_tralbum_type, query_tralbum_id, fans, album_url
 
 async def get_fan_tralbums(session, fan_data, purchase_priority, query_tralbum_id, tralbums_per_fan):
     async with session.post('https://bandcamp.com/api/fancollection/1/collection_items', data=fan_data) as response:
@@ -56,30 +91,19 @@ async def get_tralbum_tags(session, item_url):
 
 async def create(bc_url, prioritise_recent_purchasers, purchase_priority, variability):
     async with aiohttp.ClientSession() as session:
-        try:
-            async with session.get(bc_url) as resp:
-                soup = BeautifulSoup(await resp.text(), "html.parser", parse_only=SoupStrainer("meta"))
-            try:
-                bc_info = ast.literal_eval(soup.find(attrs={"name": "bc-page-properties"})['content'])
-            except TypeError:
-                st.warning("please try a bandcamp release link")
-                st.stop()
-        except InvalidURL:
-            st.warning(
-                "this needs to be a bandcamp release link. to search releases and automatically input links, use the sidebar on the left")
-            st.stop()
-        url_main = bc_url.split('://')[-1].split('/')[0]
-        url = 'https://' + url_main + '/api/tralbumcollectors/2/thumbs'
-        query_title = soup.find(property="og:title")['content']
-        query_tralbum_type = bc_info['item_type']
-        query_tralbum_id = bc_info['item_id']
-        data = '{"tralbum_type":"' + query_tralbum_type + '","tralbum_id":' + str(query_tralbum_id) + ',"count":500}'
-        async with session.post(url, data=data) as resp:
-            parsed_response = await resp.json()
-        fans = [item['fan_id'] for item in parsed_response['results']]
+        query_title, query_tralbum_type, query_tralbum_id, fans, album_url = await get_info_from_tralbum(session, bc_url)
         if len(fans) == 0:
-            st.warning("nobody's bought this release :( try another one")
-            st.stop()
+            with st.empty():
+                st.warning("nobody's bought this release :( try another one")
+                if query_tralbum_type == "t":
+                    st.info('trying album of the track')
+                    query_title, query_tralbum_type, query_tralbum_id, fans, album_url = await get_info_from_tralbum(
+                        session, album_url)
+                    if len(fans) > 0:
+                        st.success("using album instead of track")
+                    else:
+                        st.warning("no luck again, sorry :(")
+                        st.stop()
         if prioritise_recent_purchasers == 'yes':
             selected_fans = fans[:36 // variability]
         else:
