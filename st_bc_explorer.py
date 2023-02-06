@@ -104,6 +104,8 @@ async def create(bc_url, prioritise_recent_purchasers, purchase_priority, variab
                     else:
                         st.warning("no luck again, sorry :(")
                         st.stop()
+                else:
+                    st.stop()
         if prioritise_recent_purchasers == 'yes':
             selected_fans = fans[:36 // variability]
         else:
