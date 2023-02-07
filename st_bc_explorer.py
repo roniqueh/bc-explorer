@@ -81,8 +81,8 @@ if 'query_url' not in st.session_state:
     st.session_state['query_url'] = ''
 
 
-def button_callback(args):
-    st.session_state['bc_url_input'] = args
+def button_callback(url):
+    st.session_state['bc_url_input'] = url
 
 
 async def get_info_from_tralbum(session, input_url):
