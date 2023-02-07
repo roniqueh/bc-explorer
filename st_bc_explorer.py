@@ -16,6 +16,15 @@ st.set_page_config(
 
 hide_streamlit_style = """
                 <style>
+                @import url('https://fonts.googleapis.com/css2?family=Syne&display=swap');
+
+                html, body, [class*="css"]  {
+                font-family: 'Syne', sans-serif;
+                }
+                
+                section[data-testid="stSidebar"] div.stButton button {
+                width: 100%;
+                
                 div[data-testid="stToolbar"] {
                 visibility: hidden;
                 height: 0%;
@@ -65,13 +74,14 @@ if 'query_title' not in st.session_state:
 if 'query_url' not in st.session_state:
     st.session_state['query_url'] = ''
 
+
 def button_callback(args):
     st.session_state['bc_url_input'] = args
 
 
-async def get_info_from_tralbum(session, bc_url):
+async def get_info_from_tralbum(session, input_url):
     try:
-        async with session.get(bc_url) as resp:
+        async with session.get(input_url) as resp:
             soup_meta = BeautifulSoup(await resp.text(), "html.parser", parse_only=SoupStrainer("meta"))
         try:
             bc_info = ast.literal_eval(soup_meta.find(attrs={"name": "bc-page-properties"})['content'])
@@ -82,7 +92,7 @@ async def get_info_from_tralbum(session, bc_url):
         st.warning(
             "this needs to be a bandcamp release link. to search releases and automatically input links, use the sidebar on the left")
         st.stop()
-    url_main = bc_url.split('://')[-1].split('/')[0]
+    url_main = input_url.split('://')[-1].split('/')[0]
     url = 'https://' + url_main + '/api/tralbumcollectors/2/thumbs'
     query_title = soup_meta.find(property="og:title")['content']
     query_tralbum_type = bc_info['item_type']
@@ -98,6 +108,7 @@ async def get_info_from_tralbum(session, bc_url):
     else:
         album_url = None
     return query_title, query_tralbum_type, query_tralbum_id, fans, album_url
+
 
 async def get_fan_tralbums(session, fan_data, purchase_priority, query_tralbum_id, tralbums_per_fan):
     async with session.post('https://bandcamp.com/api/fancollection/1/collection_items', data=fan_data) as response:
@@ -122,16 +133,18 @@ async def get_tralbum_tags(session, item_url):
         tags = [item.text for item in soup.find_all(class_="tag")]
         return tags
 
+
 async def create(bc_url, prioritise_recent_purchasers, purchase_priority, variability):
     async with aiohttp.ClientSession() as session:
         query_url = bc_url
-        query_title, query_tralbum_type, query_tralbum_id, fans, album_url = await get_info_from_tralbum(session, bc_url)
+        query_title, query_tralbum_type, query_tralbum_id, fans, album_url = await get_info_from_tralbum(session,
+                                                                                                         bc_url)
         if len(fans) == 0:
             with st.empty():
                 st.warning("nobody's bought this release :( try another one")
                 if query_tralbum_type == "t":
                     st.info('trying album of the track')
-                    query_title, query_tralbum_type, query_tralbum_id, fans, _album_url  = await get_info_from_tralbum(
+                    query_title, query_tralbum_type, query_tralbum_id, fans, _album_url = await get_info_from_tralbum(
                         session, album_url)
                     if len(fans) > 0:
                         st.success("using album instead of track")
@@ -182,6 +195,7 @@ async def create(bc_url, prioritise_recent_purchasers, purchase_priority, variab
                                'band_name'] + '</a></iframe>'
         return selected_tralbums, query_title, query_url
 
+
 def generate_html_markdown(selected_tralbums):
     html_insert = ''
     for tralbum in selected_tralbums:
@@ -191,6 +205,7 @@ def generate_html_markdown(selected_tralbums):
                        tralbum['item_url'] + '>' + tralbum['item_title'] + ' by ' + tralbum[
                            'band_name'] + '</a></iframe>'
     return st.markdown(html_insert, unsafe_allow_html=True)
+
 
 @st.experimental_memo
 def filter_tralbums_by_tag(selected_tralbums, selected_tags):
@@ -221,16 +236,17 @@ with st.sidebar:
         'url': item.find('a')['href'].split('?')[0],
         'title': '**' + item.find(class_="result-info").find(class_='heading').get_text(strip=True) + '**'
                  + ' '
-                 + '*' +  ' '.join([elem for elem in
-                             item.find(class_="result-info").find(class_='subhead').get_text(strip=True).replace('\n',
-                                                                                                                 '').split(
-                                 ' ') if elem != '']) + '*'
+                 + '*' + ' '.join([elem for elem in
+                                   item.find(class_="result-info").find(class_='subhead').get_text(strip=True).replace(
+                                       '\n',
+                                       '').split(
+                                       ' ') if elem != '']) + '*'
     } for item in results]
     results_data = [dict for dict in results_data if dict['summary_data']['type'] in ('a', 't')]
     if len(results_data) == 0 and query_url != "https://bandcamp.com/search?q=":
         st.write("no results found, try something different")
     for result in results_data:
-        st.button(result['title'], key=result['url'], type="primary", on_click=button_callback, args=(result['url'],))
+        st.button(result['title'], key=result['url'], type="secondary", on_click=button_callback, args=(result['url'],))
 
 input_form = st.form("input_form")
 bc_url = input_form.text_input('what bandcamp release do you want to explore?',
@@ -241,6 +257,7 @@ purchase_priority = input_form.radio("what would you like to prioritise in purch
                                      help='random: random purchases from the chosen purchasers  \n \n recent: recent purchases from the chosen purchasers \n \n top: releases that are commonly found in random purcharsers purchases. set wildness higher for better results. might be slow')
 variability = [18, 12, 9, 6, 4, 3, 2, 1][input_form.slider('wildness', 1, 8, 1) - 1]
 submitted = input_form.form_submit_button("submit")
+
 if submitted and st.session_state['filter_pressed']:
     st.session_state['filter_pressed'] = False
     st.session_state['query_title'] = ''
@@ -248,10 +265,12 @@ if submitted and st.session_state['filter_pressed']:
 
 if submitted and not st.session_state['filter_pressed']:
     st.session_state['submit_pressed'] = True
+    bc_url = st.session_state['bc_url_input']
     with st.spinner(text='hold on, goodness incoming :)'):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        selected_tralbums, query_title, query_url = loop.run_until_complete(create(bc_url, prioritise_recent_purchasers, purchase_priority, variability))
+        selected_tralbums, query_title, query_url = loop.run_until_complete(
+            create(bc_url, prioritise_recent_purchasers, purchase_priority, variability))
         st.session_state['selected_tralbums'] = selected_tralbums
         st.session_state['query_title'] = query_title
         st.session_state['query_url'] = query_url
@@ -282,4 +301,3 @@ if st.session_state['submit_pressed'] or st.session_state['filter_pressed']:
         generate_html_markdown(selected_tralbums)
 else:
     st.stop()
-
