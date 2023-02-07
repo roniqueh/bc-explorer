@@ -43,6 +43,7 @@ hide_streamlit_style = """
                 
                 h1 {
                     font-weight:600;
+                    text-align:center
                 }
                 
                 section[data-testid="stSidebar"] div.stButton button {
