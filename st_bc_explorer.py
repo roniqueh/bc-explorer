@@ -166,7 +166,7 @@ async def get_tralbum_tags(session, item_url):
         return tags
 
 
-async def create(bc_url, prioritise_recent_purchasers, purchase_priority, variability):
+async def create(bc_url, prioritise_recent_purchasers, purchase_priority, variability, freshness):
     async with aiohttp.ClientSession() as session:
         query_url = bc_url
         query_title, query_tralbum_type, query_tralbum_id, fans, album_url = await get_info_from_tralbum(session,
@@ -192,8 +192,8 @@ async def create(bc_url, prioritise_recent_purchasers, purchase_priority, variab
             selected_fans = random.sample(fans, min(36 // variability, len(fans)))
         tralbums_per_fan = 36 // len(selected_fans)
 
-        fans_data = ['{"fan_id":' + str(fan) + ', "older_than_token":"2145916799::t","count":100}' for fan in
-                     selected_fans]
+        fans_data = ['{{"fan_id":{0}, "older_than_token":"2145916799::t","count":{1}}}'.format(fan, freshness) for fan in selected_fans]
+
         tasks = []
         for fan_data in fans_data:
             tasks.append(get_fan_tralbums(session, fan_data, purchase_priority, query_tralbum_id, tralbums_per_fan))
@@ -272,8 +272,9 @@ bc_url = input_form.text_input('what bandcamp release do you want to explore?',
 prioritise_recent_purchasers = input_form.radio('prioritise recent purchasers?', ('no', 'yes'),
                                                 help='yes:  recent purchasers of the release \n \n no: random purchasers of the release')
 purchase_priority = input_form.radio("what would you like to prioritise in purchases?", ('random', 'recent', 'top'),
-                                     help='random: random purchases from the chosen purchasers  \n \n recent: recent purchases from the chosen purchasers \n \n top: releases that are commonly found in random purcharsers purchases. set wildness higher for better results. might be slow')
-variability = [18, 12, 9, 6, 4, 3, 2, 1][input_form.slider('wildness', 1, 8, 1) - 1]
+                                     help='random: random purchases from the chosen purchasers  \n \n recent: recent purchases from the chosen purchasers \n \n top: releases that are commonly found in random purcharsers purchases. set wildness higher/freshness lower for better results. might be slow')
+variability = [18, 12, 9, 6, 4, 3, 2, 1][input_form.slider('wildness', 1, 8, 1, help='higher values looks at purchases from more users') - 1]
+freshness = [1024, 512, 256, 128, 64, 42, 16, 8][input_form.slider('freshness', 1, 8, 1, help='higher values looks at a more recent purchase history of users') - 1]
 submitted = input_form.form_submit_button("submit")
 
 if submitted and st.session_state['filter_pressed']:
@@ -288,7 +289,7 @@ if submitted and not st.session_state['filter_pressed']:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         selected_tralbums, query_title, query_url = loop.run_until_complete(
-            create(bc_url, prioritise_recent_purchasers, purchase_priority, variability))
+            create(bc_url, prioritise_recent_purchasers, purchase_priority, variability, freshness))
         st.session_state['selected_tralbums'] = selected_tralbums
         st.session_state['query_title'] = query_title
         st.session_state['query_url'] = query_url
