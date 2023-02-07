@@ -16,10 +16,30 @@ st.set_page_config(
 
 hide_streamlit_style = """
                 <style>
-                @import url('https://fonts.googleapis.com/css2?family=Syne&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600&display=swap');
 
-                html, body, [class*="css"]  {
+                html, body, div [class*="css"]  {
                 font-family: 'Syne', sans-serif;
+                }
+                
+                section.main {
+                background-color:hsla(15,100%,80%,0);
+                background-image:
+                radial-gradient(at 55% 17%, hsla(43,71%,37%,1) 0px, transparent 50%),
+                radial-gradient(at 27% 78%, hsla(187,71%,37%,1) 0px, transparent 50%),
+                radial-gradient(at 94% 10%, hsla(24,71%,37%,1) 0px, transparent 50%),
+                radial-gradient(at 21% 1%, hsla(332,71%,37%,1) 0px, transparent 50%),
+                radial-gradient(at 7% 96%, hsla(183,71%,37%,1) 0px, transparent 50%),
+                radial-gradient(at 95% 32%, hsla(263,71%,37%,1) 0px, transparent 50%),
+                radial-gradient(at 53% 81%, hsla(33,71%,37%,1) 0px, transparent 50%)
+                }
+                
+                div[data-testid="stForm"] {
+                    background = red;
+                }
+                
+                h1 {
+                    font-weight:600
                 }
                 
                 section[data-testid="stSidebar"] div.stButton button {
