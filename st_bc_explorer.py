@@ -26,21 +26,23 @@ hide_streamlit_style = """
                 section.main {
                 background-color:hsla(15,100%,80%,0);
                 background-image:
+                url("https://www.transparenttextures.com/patterns/otis-redding.png"),
                 radial-gradient(at 55% 17%, hsla(43,71%,37%,1) 0px, transparent 50%),
                 radial-gradient(at 27% 78%, hsla(187,71%,37%,1) 0px, transparent 50%),
                 radial-gradient(at 94% 10%, hsla(24,71%,37%,1) 0px, transparent 50%),
                 radial-gradient(at 21% 1%, hsla(332,71%,37%,1) 0px, transparent 50%),
                 radial-gradient(at 7% 96%, hsla(183,71%,37%,1) 0px, transparent 50%),
                 radial-gradient(at 95% 32%, hsla(263,71%,37%,1) 0px, transparent 50%),
-                radial-gradient(at 53% 81%, hsla(33,71%,37%,1) 0px, transparent 50%)
+                radial-gradient(at 53% 81%, hsla(33,71%,37%,1) 0px, transparent 50%);
                 }
                 
                 div[data-testid="stForm"] {
-                    background = red;
+                background-color: rgba(0, 0, 0, .10);
+                backdrop-filter: blur(16px);
                 }
                 
                 h1 {
-                    font-weight:600
+                    font-weight:600;
                 }
                 
                 section[data-testid="stSidebar"] div.stButton button {
