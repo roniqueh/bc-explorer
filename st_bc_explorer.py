@@ -122,7 +122,6 @@ async def get_tralbum_tags(session, item_url):
         tags = [item.text for item in soup.find_all(class_="tag")]
         return tags
 
-
 async def create(bc_url, prioritise_recent_purchasers, purchase_priority, variability):
     async with aiohttp.ClientSession() as session:
         query_url = bc_url
@@ -193,6 +192,7 @@ def generate_html_markdown(selected_tralbums):
                            'band_name'] + '</a></iframe>'
     return st.markdown(html_insert, unsafe_allow_html=True)
 
+@st.experimental_memo
 def filter_tralbums_by_tag(selected_tralbums, selected_tags):
     if selected_tags == []:
         filtered_tralbums = selected_tralbums
