@@ -25,6 +25,12 @@ hide_streamlit_style = """
                 section[data-testid="stSidebar"] div.stButton button {
                 width: 100%;
                 
+                div[data-testid="results-container"] {
+                display: flex;
+                width: 100%;
+                background: red;
+                }
+                
                 div[data-testid="stToolbar"] {
                 visibility: hidden;
                 height: 0%;
@@ -182,28 +188,22 @@ async def create(bc_url, prioritise_recent_purchasers, purchase_priority, variab
         for tralbum in selected_tralbums:
             tasks.append(get_tralbum_tags(session, tralbum['item_url']))
         tralbum_tags = await asyncio.gather(*tasks)
-
-        html_insert = ''
         for i, tralbum in enumerate(selected_tralbums):
-            if tralbum['item_type'] == 'package':
-                tralbum['item_type'] = 'album'
             tralbum['tags'] = tralbum_tags[i]
-            html_insert += '<iframe style="border: 0; width: 200px; height: 200px;" src="https://bandcamp.com/EmbeddedPlayer/' + \
-                           tralbum['item_type'] + '=' + str(tralbum[
-                                                                'tralbum_id']) + '/size=large/bgcol=333333/linkcol=0f91ff/minimal=true/transparent=true/" seamless><a href=' + \
-                           tralbum['item_url'] + '>' + tralbum['item_title'] + ' by ' + tralbum[
-                               'band_name'] + '</a></iframe>'
         return selected_tralbums, query_title, query_url
 
 
 def generate_html_markdown(selected_tralbums):
-    html_insert = ''
+    html_insert = '<div class="results-container" style="text-align: center;">'
     for tralbum in selected_tralbums:
+        if tralbum['item_type'] == 'package':
+            tralbum['item_type'] = 'album'
         html_insert += '<iframe style="border: 0; width: 200px; height: 200px;" src="https://bandcamp.com/EmbeddedPlayer/' + \
                        tralbum['item_type'] + '=' + str(tralbum[
                                                             'tralbum_id']) + '/size=large/bgcol=333333/linkcol=0f91ff/minimal=true/transparent=true/" seamless><a href=' + \
                        tralbum['item_url'] + '>' + tralbum['item_title'] + ' by ' + tralbum[
                            'band_name'] + '</a></iframe>'
+    html_insert += "</div>"
     return st.markdown(html_insert, unsafe_allow_html=True)
 
 
