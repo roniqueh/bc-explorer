@@ -124,12 +124,7 @@ async def get_info_from_tralbum(session, input_url):
     query_title = soup_meta.find(property="og:title")['content']
     query_tralbum_type = bc_info['item_type']
     query_tralbum_id = bc_info['item_id']
-    data = {
-        "tralbum_type": query_tralbum_type,
-        "tralbum_id": query_tralbum_id,
-        "count": 500
-    }
-    data = json.dumps(data)
+    data = '{{"tralbum_type":"{}", "tralbum_id":"{}", "count":500}}'.format(query_tralbum_type, query_tralbum_id)
     async with session.post(url, data=data) as resp:
         parsed_response = await resp.json()
     fans = [item['fan_id'] for item in parsed_response['results']]
@@ -274,7 +269,7 @@ prioritise_recent_purchasers = input_form.radio('prioritise recent purchasers?',
 purchase_priority = input_form.radio("what would you like to prioritise in purchases?", ('random', 'recent', 'top'),
                                      help='random: random purchases from the chosen purchasers  \n \n recent: recent purchases from the chosen purchasers \n \n top: releases that are commonly found in random purcharsers purchases. set wildness higher/freshness lower for better results. might be slow')
 variability = [18, 12, 9, 6, 4, 3, 2, 1][input_form.slider('wildness', 1, 8, 1, help='higher values looks at purchases from more users') - 1]
-freshness = [1024, 512, 256, 128, 64, 42, 16, 8][input_form.slider('freshness', 1, 8, 1, help='higher values looks at more recent purchase histories of users') - 1]
+freshness = [1024, 512, 256, 128, 64, 32, 16, 8][input_form.slider('freshness', 1, 8, 1, help='higher values looks at more recent purchase histories of users') - 1]
 submitted = input_form.form_submit_button("submit")
 
 if submitted and st.session_state['filter_pressed']:
