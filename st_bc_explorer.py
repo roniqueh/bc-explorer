@@ -19,7 +19,7 @@ hide_streamlit_style = """
                 <style>
                 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600&display=swap');
 
-                html, body, div [class*="css"]  {
+                html, body, div, label [class*="css"]  {
                 font-family: 'Syne', sans-serif;
                 }
                 
@@ -234,7 +234,7 @@ def filter_tralbums_by_tag(selected_tralbums, selected_tags):
     return filtered_tralbums
 
 
-st.title('Bandcamp Explorer :sunglasses:')
+st.title('Bandcamp Explorer')
 st.caption('[contact for bugs/suggestions :)](https://instagram.com/rxniqueh)')
 st.caption('*p.s. mobile users: click in top left for a search tool*')
 
