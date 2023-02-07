@@ -43,7 +43,6 @@ hide_streamlit_style = """
                 
                 h1 {
                     font-weight:600;
-                    text-align:center
                 }
                 
                 section[data-testid="stSidebar"] div.stButton button {
@@ -235,7 +234,7 @@ def filter_tralbums_by_tag(selected_tralbums, selected_tags):
     return filtered_tralbums
 
 
-st.title('Bandcamp Explorer')
+st.title('Bandcamp Explorer :sunglasses:')
 st.caption('[contact for bugs/suggestions :)](https://instagram.com/rxniqueh)')
 st.caption('*p.s. mobile users: click in top left for a search tool*')
 
