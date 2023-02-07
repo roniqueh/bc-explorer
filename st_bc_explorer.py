@@ -1,5 +1,6 @@
 import subprocess
 import os
+import json
 import requests
 import asyncio
 import aiohttp
@@ -119,18 +120,23 @@ async def get_info_from_tralbum(session, input_url):
             "this needs to be a bandcamp release link. to search releases and automatically input links, use the sidebar on the left")
         st.stop()
     url_main = input_url.split('://')[-1].split('/')[0]
-    url = 'https://' + url_main + '/api/tralbumcollectors/2/thumbs'
+    url = f"https://{url_main}/api/tralbumcollectors/2/thumbs"
     query_title = soup_meta.find(property="og:title")['content']
     query_tralbum_type = bc_info['item_type']
     query_tralbum_id = bc_info['item_id']
-    data = '{"tralbum_type":"' + query_tralbum_type + '","tralbum_id":' + str(query_tralbum_id) + ',"count":500}'
+    data = {
+        "tralbum_type": query_tralbum_type,
+        "tralbum_id": query_tralbum_id,
+        "count": 500
+    }
+    data = json.dumps(data)
     async with session.post(url, data=data) as resp:
         parsed_response = await resp.json()
     fans = [item['fan_id'] for item in parsed_response['results']]
     if query_tralbum_type == "t":
         async with session.get(bc_url) as resp:
             soup_h3 = BeautifulSoup(await resp.text(), "html.parser", parse_only=SoupStrainer("h3"))
-            album_url = 'https://' + url_main + soup_h3.find('a')['href']
+            album_url = f"https://{url_main}{soup_h3.find('a')['href']}"
     else:
         album_url = None
     return query_title, query_tralbum_type, query_tralbum_id, fans, album_url
@@ -214,18 +220,12 @@ async def create(bc_url, prioritise_recent_purchasers, purchase_priority, variab
 
 
 def generate_html_markdown(selected_tralbums):
-    html_insert = '<div class="results-container" style="text-align: center;">'
+    html_list = []
     for tralbum in selected_tralbums:
-        if tralbum['item_type'] == 'package':
-            tralbum['item_type'] = 'album'
-        html_insert += '<iframe style="border: 0; width: 200px; height: 200px;" src="https://bandcamp.com/EmbeddedPlayer/' + \
-                       tralbum['item_type'] + '=' + str(tralbum[
-                                                            'tralbum_id']) + '/size=large/bgcol=333333/linkcol=0f91ff/minimal=true/transparent=true/" seamless><a href=' + \
-                       tralbum['item_url'] + '>' + tralbum['item_title'] + ' by ' + tralbum[
-                           'band_name'] + '</a></iframe>'
-    html_insert += "</div>"
+        item_type = 'album' if tralbum['item_type'] == 'package' else tralbum['item_type']
+        html_list.append(f'<iframe style="border: 0; width: 200px; height: 200px;" src="https://bandcamp.com/EmbeddedPlayer/{item_type}={tralbum["tralbum_id"]}/size=large/bgcol=333333/linkcol=0f91ff/minimal=true/transparent=true/" seamless><a href={tralbum["item_url"]}>{tralbum["item_title"]} by {tralbum["band_name"]}</a></iframe>')
+    html_insert = '<div class="results-container" style="text-align: center;">\n' + "\n".join(html_list) + '\n</div>'
     return st.markdown(html_insert, unsafe_allow_html=True)
-
 
 @st.experimental_memo
 def filter_tralbums_by_tag(selected_tralbums, selected_tags):
@@ -242,26 +242,24 @@ st.caption('[contact for bugs/suggestions :)](https://instagram.com/rxniqueh)')
 st.caption('*p.s. mobile users: click in top left for a search tool*')
 
 with st.sidebar:
-    query = st.text_input(
-        "bandcamp search"
-    ).replace('+', '2B').replace(' ', '+').replace('&', '%26').replace('=', '%3D').replace('@', '%40').replace("'",
-                                                                                                               "%27")
+    query = st.text_input("bandcamp search")
+    query = query.translate(str.maketrans({'+': '2B', ' ': '+', '&': '%26', '=': '%3D', '@': "%40", "'": "%27"}))
     query_url = "https://bandcamp.com/search?q=" + query
     s = requests.session()
     response = s.get(query_url)
     soup = BeautifulSoup(response.text, "html.parser", parse_only=SoupStrainer("li"))
     results = soup.find_all(class_="searchresult data-search")
-    results_data = [{
-        'summary_data': ast.literal_eval(item['data-search']),
-        'url': item.find('a')['href'].split('?')[0],
-        'title': '**' + item.find(class_="result-info").find(class_='heading').get_text(strip=True) + '**'
-                 + ' '
-                 + '*' + ' '.join([elem for elem in
+    results_data = [{'summary_data': ast.literal_eval(item['data-search']),
+                     'url': item.find('a')['href'].split('?')[0],
+                     'title': '**{}** *{}*'.format(
+                         item.find(class_="result-info").find(class_='heading').get_text(strip=True),
+                         ' '.join([elem for elem in
                                    item.find(class_="result-info").find(class_='subhead').get_text(strip=True).replace(
-                                       '\n',
-                                       '').split(
-                                       ' ') if elem != '']) + '*'
-    } for item in results]
+                                       '\n', '').split(' ') if elem != ''])
+                     ),
+                     }
+                    for item in results
+                    ]
     results_data = [dict for dict in results_data if dict['summary_data']['type'] in ('a', 't')]
     if len(results_data) == 0 and query_url != "https://bandcamp.com/search?q=":
         st.write("no results found, try something different")
@@ -299,15 +297,11 @@ if st.session_state['submit_pressed'] or st.session_state['filter_pressed']:
     query_title = st.session_state['query_title']
     selected_tralbums = st.session_state['selected_tralbums']
     query_url = st.session_state['query_url']
+    purchasers = 'recent' if prioritise_recent_purchasers == 'yes' else 'random'
+    subtitle_markdown = (f'{purchase_priority} purchases of {purchasers} purchasers of '
+                         f'[{query_title}]({query_url})' if purchase_priority != 'top' else
+                         f'purchases commonly found in {purchasers} purchasers of [{query_title}]({query_url})')
 
-    if prioritise_recent_purchasers == 'yes':
-        purchasers = 'recent'
-    else:
-        purchasers = 'random'
-    if purchase_priority == 'top':
-        subtitle_markdown = 'purchases commonly found in ' + purchasers + ' purchasers of [' + query_title + "](" + query_url + ")"
-    else:
-        subtitle_markdown = purchase_priority + " purchases of " + purchasers + " purchasers of [" + query_title + "](" + query_url + ")"
     st.markdown(subtitle_markdown)
     all_tags = sorted(list(set([tag for tralbum in selected_tralbums for tag in tralbum['tags']])))
     filter_form = st.form("filter_form")
