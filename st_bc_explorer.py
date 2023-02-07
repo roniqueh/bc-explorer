@@ -270,8 +270,8 @@ prioritise_recent_purchasers = input_form.radio('prioritise recent purchasers?',
                                                 help='yes:  recent purchasers of the release \n \n no: random purchasers of the release')
 purchase_priority = input_form.radio("what would you like to prioritise in purchases?", ('random', 'recent', 'top'),
                                      help='random: random purchases from the chosen purchasers  \n \n recent: recent purchases from the chosen purchasers \n \n top: releases that are commonly found in random purcharsers purchases. set wildness higher/freshness lower for better results. might be slow')
-variability = [18, 12, 9, 6, 4, 3, 2, 1][input_form.slider('wildness', 1, 8, 1, help='higher values looks at purchases from more users') - 1]
-freshness = [1024, 512, 256, 128, 64, 32, 16, 8][input_form.slider('freshness', 1, 8, 1, help='higher values looks at more recent purchase histories of users') - 1]
+variability = [18, 12, 9, 6, 4, 3, 2, 1][input_form.slider('wildness', 1, 8, 5, help='higher values looks at purchases from more users') - 1]
+freshness = [1024, 512, 256, 128, 64, 32, 16, 8][input_form.slider('freshness', 1, 8, 5, help="higher values looks at more recent purchase histories of users \n \n won't change results much if recent purchases prioritised" ) - 1]
 submitted = input_form.form_submit_button("submit")
 
 if submitted and st.session_state['filter_pressed']:
