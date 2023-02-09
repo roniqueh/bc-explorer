@@ -96,7 +96,6 @@ if 'query_title' not in st.session_state:
 if 'query_url' not in st.session_state:
     st.session_state['query_url'] = ''
 
-
 def button_callback(url):
     st.session_state['bc_url_input'] = url
 
