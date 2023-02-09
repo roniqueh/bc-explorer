@@ -45,13 +45,8 @@ hide_streamlit_style = """
                 
                 section[data-testid="stSidebar"] div.stButton button {
                 width: 100%;
-                
-                div[data-testid="results-container"] {
-                display: flex;
-                width: 100%;
-                background: red;
                 }
-                
+
                 div[data-testid="stToolbar"] {
                 visibility: hidden;
                 height: 0%;

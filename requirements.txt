@@ -1,3 +1,4 @@
 requests~=2.27.1
 beautifulsoup4~=4.11.1
 aiohttp~=3.8.1
+streamlit~=1.17.0
