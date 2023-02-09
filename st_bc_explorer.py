@@ -1,6 +1,4 @@
-import subprocess
-import os
-import json
+from datetime import datetime, time
 import requests
 import asyncio
 import aiohttp
@@ -129,7 +127,10 @@ async def get_info_from_tralbum(session, input_url):
     data = '{{"tralbum_type":"{}", "tralbum_id":"{}", "count":500}}'.format(query_tralbum_type, query_tralbum_id)
     async with session.post(url, data=data) as resp:
         parsed_response = await resp.json()
-    fans = [item['fan_id'] for item in parsed_response['results']]
+    fans = [{
+        "fan_id": item['fan_id'],
+        "mod_date": datetime.strptime(item['mod_date'], "%d %b %Y %H:%M:%S %Z")
+    } for item in parsed_response['results']]
     if query_tralbum_type == "t":
         async with session.get(bc_url) as resp:
             soup_h3 = BeautifulSoup(await resp.text(), "html.parser", parse_only=SoupStrainer("h3"))
@@ -189,7 +190,7 @@ async def create(bc_url, prioritise_recent_purchasers, purchase_priority, variab
             selected_fans = random.sample(fans, min(36 // variability, len(fans)))
         tralbums_per_fan = 36 // len(selected_fans)
 
-        fans_data = ['{{"fan_id":{0}, "older_than_token":"2145916799::t","count":{1}}}'.format(fan, freshness) for fan in selected_fans]
+        fans_data = ['{{"fan_id":{0}, "older_than_token":"2145916799::t","count":{1}}}'.format(fan['fan_id'], freshness) for fan in selected_fans]
 
         tasks = []
         for fan_data in fans_data:
@@ -263,7 +264,9 @@ with st.sidebar:
     for result in results_data:
         st.button(result['title'], key=result['url'], type="secondary", on_click=button_callback, args=(result['url'],))
 
+
 input_form = st.form("input_form")
+
 bc_url = input_form.text_input('what bandcamp release do you want to explore?',
                                help='url of bandcamp release (track or album)', key='bc_url_input')
 prioritise_recent_purchasers = input_form.radio('prioritise recent purchasers?', ('no', 'yes'),
