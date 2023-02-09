@@ -231,7 +231,7 @@ def generate_html_markdown(selected_tralbums):
     html_insert = '<div class="results-container" style="text-align: center;">\n' + "\n".join(html_list) + '\n</div>'
     return st.markdown(html_insert, unsafe_allow_html=True)
 
-@st.experimental_memo
+@st.experimental_memo(max_entries=50)
 def filter_tralbums_by_tag(selected_tralbums, selected_tags):
     if selected_tags == []:
         filtered_tralbums = selected_tralbums
