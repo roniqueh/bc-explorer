@@ -13,9 +13,12 @@ st.set_page_config(
     page_title="Bandcamp Explorer"
 )
 
+st.caption('[contact for bugs/suggestions :)](https://instagram.com/rxniqueh)')
+st.title('Bandcamp Explorer')
+
 hide_streamlit_style = """
                 <style>
-                @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600&display=swap');
+                @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700&display=swap');
 
                 html, body, div, label [class*="css"]  {
                 font-family: 'Syne', sans-serif;
@@ -34,13 +37,22 @@ hide_streamlit_style = """
                 radial-gradient(at 53% 81%, hsla(33,71%,37%,1) 0px, transparent 50%);
                 }
                 
+                .block-container {
+                padding-top: 2rem;
+                }
+                
+                div[data-testid="stCaptionContainer"] {
+                text-align: right;
+                }
+                
                 div[data-testid="stForm"] {
                 background-color: rgba(0, 0, 0, .10);
                 backdrop-filter: blur(16px);
                 }
                 
                 h1 {
-                    font-weight:600;
+                    font-weight:700;
+                    font-size:3rem;
                 }
                 
                 section[data-testid="stSidebar"] div.stButton button {
@@ -229,10 +241,6 @@ def filter_tralbums_by_tag(selected_tralbums, selected_tags):
     return filtered_tralbums
 
 
-st.title('Bandcamp Explorer :sunglasses:')
-st.caption('[contact for bugs/suggestions :)](https://instagram.com/rxniqueh)')
-st.caption('*p.s. mobile users: click in top left for a search tool*')
-
 with st.sidebar:
     query = st.text_input("bandcamp search")
     query = query.translate(str.maketrans({'+': '2B', ' ': '+', '&': '%26', '=': '%3D', '@': "%40", "'": "%27"}))
@@ -263,6 +271,7 @@ input_form = st.form("input_form")
 
 bc_url = input_form.text_input('what bandcamp release do you want to explore?',
                                help='url of bandcamp release (track or album)', key='bc_url_input')
+input_form.caption('*p.s. mobile users: click arrow in top left for a search tool*')
 prioritise_recent_purchasers = input_form.radio('prioritise recent purchasers?', ('no', 'yes'),
                                                 help='yes:  recent purchasers of the release \n \n no: random purchasers of the release')
 purchase_priority = input_form.radio("what would you like to prioritise in purchases?", ('random', 'recent', 'top'),
