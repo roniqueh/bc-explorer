@@ -150,10 +150,10 @@ async def get_fan_tralbums(session, fan_data, purchase_priority, query_tralbum_i
     async with session.post('https://bandcamp.com/api/fancollection/1/collection_items', data=fan_data) as response:
         parsed_response = await response.json()
         tralbums = parsed_response['items']
-        desired_keys = ("item_type", "tralbum_id", "item_url", "item_title", "band_name", "num_streamable_tracks")
+        desired_keys = ("item_type", "tralbum_id", "item_url", "item_title", "band_name", "num_streamable_tracks", "is_subscriber_only")
         tralbums = [{key: dict[key] for key in desired_keys} for dict in tralbums]
         tralbums = [tralbum for tralbum in tralbums if
-                    tralbum['tralbum_id'] != query_tralbum_id and tralbum['num_streamable_tracks'] != 0]
+                    tralbum['tralbum_id'] != query_tralbum_id and tralbum['num_streamable_tracks'] != 0 and tralbum["is_subscriber_only"] == False]
         if purchase_priority == 'top':
             selected_tralbums = tralbums
         elif purchase_priority == 'recent':
@@ -197,7 +197,6 @@ async def create(bc_url, prioritise_recent_purchasers, purchase_priority, variab
         tralbums_per_fan = 36 // len(selected_fans)
 
         fans_data = ['{{"fan_id":{0}, "older_than_token":"2145916799::t","count":{1}}}'.format(fan['fan_id'], freshness) for fan in selected_fans]
-
         tasks = []
         for fan_data in fans_data:
             tasks.append(get_fan_tralbums(session, fan_data, purchase_priority, query_tralbum_id, tralbums_per_fan))
