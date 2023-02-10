@@ -14,7 +14,7 @@ st.set_page_config(
 )
 
 st.caption('[contact for bugs/suggestions :)](https://instagram.com/rxniqueh)')
-st.title('Bandcamp Explorer')
+st.title('BANDCAMP EXPLORER')
 
 hide_streamlit_style = """
                 <style>
