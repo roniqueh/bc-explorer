@@ -271,7 +271,7 @@ with st.sidebar:
 input_form = st.form("input_form")
 
 bc_url = input_form.text_input('what bandcamp release do you want to explore?',
-                               help='url of bandcamp release (track or album)', key='bc_url_input')
+                               help='url of bandcamp release (track or album)', key='bc_url_input', placeholder="https://tobagotracks.bandcamp.com/album/fantasias-for-lock-in")
 input_form.caption('*p.s. mobile users: click arrow in top left for a search tool*')
 prioritise_recent_purchasers = input_form.radio('prioritise recent purchasers?', ('no', 'yes'),
                                                 help='yes:  recent purchasers of the release \n \n no: random purchasers of the release')
