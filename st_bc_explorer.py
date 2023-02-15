@@ -50,8 +50,8 @@ hide_streamlit_style = """
                 }
                 
                 h1 {
-                    font-weight:700;
-                    font-size:3rem;
+                font-weight:700;
+                font-size:3rem;
                 }
                 
                 section[data-testid="stSidebar"] div.stButton button {
