@@ -15,7 +15,7 @@ st.set_page_config(
 
 st.caption('[contact for bugs/suggestions :)](https://instagram.com/rxniqueh)')
 st.title('BANDCAMP EXPLORER')
-st.write('testtest')
+st.write('testtesttest')
 hide_streamlit_style = """
                 <style>
                 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;700&display=swap');
