@@ -87,6 +87,7 @@ hide_streamlit_style = """
                 }
                 </style>
                 """
+
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 if 'bc_url_input' not in st.session_state:
