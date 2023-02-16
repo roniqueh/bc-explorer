@@ -4,3 +4,4 @@ aiohttp~=3.8.1
 streamlit~=1.17.0
 pandas~=1.4.2
 supabase~=0.7.1
+human-id~=0.2.0
