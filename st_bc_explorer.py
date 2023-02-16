@@ -7,6 +7,8 @@ import ast
 import random
 from collections import Counter
 from bs4 import BeautifulSoup, SoupStrainer
+from human_id import generate_id
+from supabase import create_client, Client
 import streamlit as st
 
 st.set_page_config(
@@ -93,7 +95,7 @@ hide_streamlit_style = """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 if 'bc_url_input' not in st.session_state:
-    st.session_state['bc_url_input'] = ""
+    st.session_state['bc_url_input'] = "https://tobagotracks.bandcamp.com/album/fantasias-for-lock-in"
 
 if 'submit_pressed' not in st.session_state:
     st.session_state['submit_pressed'] = False
@@ -101,16 +103,61 @@ if 'submit_pressed' not in st.session_state:
 if 'filter_pressed' not in st.session_state:
     st.session_state['filter_pressed'] = False
 
-if 'selected_tralbums' not in st.session_state:
-    st.session_state['selected_tralbums'] = ''
+if 'results_dict' not in st.session_state:
+    st.session_state['results_dict'] = {"uid": "",
+                                        "data": {"query_title": "", "query_url": "", "selected_tralbums": None}}
 
-if 'query_title' not in st.session_state:
-    st.session_state['query_title'] = ''
+if 'query_params_loaded' not in st.session_state:
+    st.session_state['query_params_loaded'] = False
 
-if 'query_url' not in st.session_state:
-    st.session_state['query_url'] = ''
+
+@st.experimental_singleton
+def init_connection():
+    url = st.secrets["supabase_url"]
+    key = st.secrets["supabase_key"]
+    return create_client(url, key)
+
+
+supabase = init_connection()
+
+
+def run_id_query(uid):
+    row = supabase.table("resultstable").select("data").eq("uid", uid).limit(1).execute()
+    try:
+        return row.data[0]['data']
+    except IndexError:
+        return None
+
+
+def load_query_params():
+    try:
+        uid = st.experimental_get_query_params()['id'][0]
+        data = run_id_query(uid)
+        if data is not None:
+            st.session_state['results_dict']['uid'] = uid
+            for key in data:
+                st.session_state['results_dict']['data'][key] = data[key]
+            st.session_state['submit_pressed'] = True
+            st.session_state['query_params_loaded'] = True
+            st.session_state['bc_url_input'] = st.session_state['results_dict']['data']['query_url']
+    except KeyError:
+        pass
+
+if not st.session_state['submit_pressed'] and not st.session_state['query_params_loaded']:
+    load_query_params()
+
+
+def insert_data(results_dict):
+    if not st.session_state['query_params_loaded']:
+        supabase.table("resultstable").insert({'uid': results_dict['uid'], 'data': results_dict['data']}).execute()
+
+def search_input_callback():
+    st.session_state['submit_pressed'] = False
+    st.session_state['filter_pressed'] = False
 
 def button_callback(url):
+    st.session_state['submit_pressed'] = False
+    st.session_state['filter_pressed'] = False
     st.session_state['bc_url_input'] = url
 
 
@@ -152,10 +199,13 @@ async def get_fan_tralbums(session, fan_data, purchase_priority, query_tralbum_i
     async with session.post('https://bandcamp.com/api/fancollection/1/collection_items', data=fan_data) as response:
         parsed_response = await response.json()
         tralbums = parsed_response['items']
-        desired_keys = ("item_type", "tralbum_id", "item_url", "item_title", "band_name", "num_streamable_tracks", "is_subscriber_only")
+        desired_keys = (
+            "item_type", "tralbum_id", "item_url", "item_title", "band_name", "num_streamable_tracks",
+            "is_subscriber_only")
         tralbums = [{key: dict[key] for key in desired_keys} for dict in tralbums]
         tralbums = [tralbum for tralbum in tralbums if
-                    tralbum['tralbum_id'] != query_tralbum_id and tralbum['num_streamable_tracks'] != 0 and tralbum["is_subscriber_only"] == False]
+                    tralbum['tralbum_id'] != query_tralbum_id and tralbum['num_streamable_tracks'] != 0 and tralbum[
+                        "is_subscriber_only"] == False]
         if purchase_priority == 'top':
             selected_tralbums = tralbums
         elif purchase_priority == 'recent':
@@ -198,7 +248,8 @@ async def create(bc_url, prioritise_recent_purchasers, purchase_priority, variab
             selected_fans = random.sample(fans, min(36 // variability, len(fans)))
         tralbums_per_fan = 36 // len(selected_fans)
 
-        fans_data = ['{{"fan_id":{0}, "older_than_token":"2145916799::t","count":{1}}}'.format(fan['fan_id'], freshness) for fan in selected_fans]
+        fans_data = ['{{"fan_id":{0}, "older_than_token":"2145916799::t","count":{1}}}'.format(fan['fan_id'], freshness)
+                     for fan in selected_fans]
         tasks = []
         for fan_data in fans_data:
             tasks.append(get_fan_tralbums(session, fan_data, purchase_priority, query_tralbum_id, tralbums_per_fan))
@@ -228,9 +279,11 @@ def generate_html_markdown(selected_tralbums):
     html_list = []
     for tralbum in selected_tralbums:
         item_type = 'album' if tralbum['item_type'] == 'package' else tralbum['item_type']
-        html_list.append(f'<iframe style="border: 0; width: 200px; height: 200px;" src="https://bandcamp.com/EmbeddedPlayer/{item_type}={tralbum["tralbum_id"]}/size=large/bgcol=333333/linkcol=0f91ff/minimal=true/transparent=true/" seamless><a href={tralbum["item_url"]}>{tralbum["item_title"]} by {tralbum["band_name"]}</a></iframe>')
+        html_list.append(
+            f'<iframe style="border: 0; width: 200px; height: 200px;" src="https://bandcamp.com/EmbeddedPlayer/{item_type}={tralbum["tralbum_id"]}/size=large/bgcol=333333/linkcol=0f91ff/minimal=true/transparent=true/" seamless><a href={tralbum["item_url"]}>{tralbum["item_title"]} by {tralbum["band_name"]}</a></iframe>')
     html_insert = '<div class="results-container" style="text-align: center;">\n' + "\n".join(html_list) + '\n</div>'
     return st.markdown(html_insert, unsafe_allow_html=True)
+
 
 @st.experimental_memo(max_entries=50)
 def filter_tralbums_by_tag(selected_tralbums, selected_tags):
@@ -243,7 +296,7 @@ def filter_tralbums_by_tag(selected_tralbums, selected_tags):
 
 
 with st.sidebar:
-    query = st.text_input("bandcamp search")
+    query = st.text_input("bandcamp search", on_change=search_input_callback)
     query = query.translate(str.maketrans({'+': '2B', ' ': '+', '&': '%26', '=': '%3D', '@': "%40", "'": "%27"}))
     query_url = "https://bandcamp.com/search?q=" + query
     s = requests.session()
@@ -267,41 +320,52 @@ with st.sidebar:
     for result in results_data:
         st.button(result['title'], key=result['url'], type="secondary", on_click=button_callback, args=(result['url'],))
 
-
 input_form = st.form("input_form")
-
 bc_url = input_form.text_input('what bandcamp release do you want to explore?',
-                               help='url of bandcamp release (track or album)', key='bc_url_input', placeholder="https://tobagotracks.bandcamp.com/album/fantasias-for-lock-in")
+                               help='url of bandcamp release (track or album)', key='bc_url_input',
+                               value=st.session_state['bc_url_input'])
 input_form.caption('*p.s. mobile users: click arrow in top left for a search tool*')
 prioritise_recent_purchasers = input_form.radio('prioritise recent purchasers?', ('no', 'yes'),
                                                 help='yes:  recent purchasers of the release \n \n no: random purchasers of the release')
 purchase_priority = input_form.radio("what would you like to prioritise in purchases?", ('random', 'recent', 'top'),
                                      help='random: random purchases from the chosen purchasers  \n \n recent: recent purchases from the chosen purchasers \n \n top: releases that are commonly found in random purcharsers purchases. set wildness higher/freshness lower for better results. might be slow')
-variability = [18, 12, 9, 6, 4, 3, 2, 1][input_form.slider('wildness', 1, 8, 5, help='higher values looks at purchases from more users') - 1]
-freshness = [1024, 512, 256, 128, 64, 32, 16, 8][input_form.slider('freshness', 1, 8, 5, help="higher values looks at more recent purchase histories of users \n \n won't change results much if recent purchases prioritised" ) - 1]
+variability = [18, 12, 9, 6, 4, 3, 2, 1][
+    input_form.slider('wildness', 1, 8, 5, help='higher values looks at purchases from more users') - 1]
+freshness = [1024, 512, 256, 128, 64, 32, 16, 8][input_form.slider('freshness', 1, 8, 5,
+                                                                   help="higher values looks at more recent purchase histories of users \n \n won't change results much if recent purchases prioritised") - 1]
 submitted = input_form.form_submit_button("submit")
 
+# reset for a new search made after filtering the previous search
 if submitted and st.session_state['filter_pressed']:
     st.session_state['filter_pressed'] = False
-    st.session_state['query_title'] = ''
-    st.session_state['selected_tralbums'] = ''
+    st.session_state['results_dict']['data']['query_title'] = ''
+    st.session_state['results_dict']['data']['selected_tralbums'] = None
 
+# main processing
 if submitted and not st.session_state['filter_pressed']:
     st.session_state['submit_pressed'] = True
+    st.session_state['query_params_loaded'] = False
     bc_url = st.session_state['bc_url_input']
     with st.spinner(text='hold on, goodness incoming :)'):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         selected_tralbums, query_title, query_url = loop.run_until_complete(
             create(bc_url, prioritise_recent_purchasers, purchase_priority, variability, freshness))
-        st.session_state['selected_tralbums'] = selected_tralbums
-        st.session_state['query_title'] = query_title
-        st.session_state['query_url'] = query_url
+        st.session_state['results_dict']['data']['selected_tralbums'] = selected_tralbums
+        st.session_state['results_dict']['data']['query_title'] = query_title
+        st.session_state['results_dict']['data']['query_url'] = query_url
+        st.session_state['results_dict']['uid'] = generate_id()
+        st.session_state['query_params_loaded'] = False
+        insert_data(st.session_state['results_dict'])
 
+# so you can repeatedly filter a current search without repeating above processing
 if st.session_state['submit_pressed'] or st.session_state['filter_pressed']:
-    query_title = st.session_state['query_title']
-    selected_tralbums = st.session_state['selected_tralbums']
-    query_url = st.session_state['query_url']
+    results_dict = st.session_state['results_dict']
+    # st.write(results_dict)
+    st.experimental_set_query_params(id=results_dict['uid'])
+    query_title = results_dict['data']['query_title']
+    selected_tralbums = results_dict['data']['selected_tralbums']
+    query_url = results_dict['data']['query_url']
     purchasers = 'recent' if prioritise_recent_purchasers == 'yes' else 'random'
     subtitle_markdown = (f'{purchase_priority} purchases of {purchasers} purchasers of '
                          f'[{query_title}]({query_url})' if purchase_priority != 'top' else
@@ -318,5 +382,8 @@ if st.session_state['submit_pressed'] or st.session_state['filter_pressed']:
         generate_html_markdown(filtered_tralbums)
     else:
         generate_html_markdown(selected_tralbums)
+    st.session_state['query_params_loaded'] = True
 else:
+    st.session_state['submit_pressed'] = False
+    st.session_state['filter_pressed'] = False
     st.stop()
