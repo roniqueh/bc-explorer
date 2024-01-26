@@ -142,6 +142,7 @@ def load_query_params():
             st.session_state['bc_url_input'] = st.session_state['results_dict']['data']['query_url']
     except KeyError:
         pass
+        
 
 if not st.session_state['submit_pressed'] and not st.session_state['query_params_loaded']:
     load_query_params()
