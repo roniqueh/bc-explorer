@@ -11,7 +11,6 @@ from human_id import generate_id
 from supabase import create_client, Client
 import streamlit as st
 
-
 st.set_page_config(
     page_title="Bandcamp Explorer"
 )
