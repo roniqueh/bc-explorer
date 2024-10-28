@@ -92,8 +92,10 @@ hide_streamlit_style = """
                 }
                 </style>
                 """
+bmc_button = "<script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="bc.explorer" data-color="#FFDD00" data-emoji=""  data-font="Cookie" data-text="Buy me a coffee" data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff" ></script>"
 
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+st.markdown(bmc_button, unsafe_allow_html=True)
 
 if 'bc_url_input' not in st.session_state:
     st.session_state['bc_url_input'] = "https://tobagotracks.bandcamp.com/album/fantasias-for-lock-in"
