@@ -104,7 +104,7 @@ button = f"""
             data-font="Cookie"
             data-text="Buy me a coffee"
             data-outline-color="#000000"
-            data-font-color="#FFDD00"
+            data-font-color="#000000"
             data-coffee-color="#000000" >
         </script>
     """
