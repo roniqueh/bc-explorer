@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup, SoupStrainer
 from human_id import generate_id
 from supabase import create_client, Client
 import streamlit as st
+from streamlit.components.v1 import html
 
 st.set_page_config(
     page_title="Bandcamp Explorer"
@@ -107,7 +108,7 @@ button = f"""
             data-coffee-color="#000000" >
         </script>
     """
-st.markdown(button, unsafe_allow_html=True)
+html(button, width=220)
 
 if 'bc_url_input' not in st.session_state:
     st.session_state['bc_url_input'] = "https://tobagotracks.bandcamp.com/album/fantasias-for-lock-in"
