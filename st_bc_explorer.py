@@ -10,7 +10,6 @@ from bs4 import BeautifulSoup, SoupStrainer
 from human_id import generate_id
 from supabase import create_client, Client
 import streamlit as st
-from streamlit_extras.buy_me_a_coffee import button
 
 st.set_page_config(
     page_title="Bandcamp Explorer"
