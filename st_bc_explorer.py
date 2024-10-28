@@ -107,7 +107,7 @@ button = f"""
             data-coffee-color="#000000" >
         </script>
     """
-html(button, height=70, width=220)
+st.html(button, height=70, width=220)
 
 if 'bc_url_input' not in st.session_state:
     st.session_state['bc_url_input'] = "https://tobagotracks.bandcamp.com/album/fantasias-for-lock-in"
