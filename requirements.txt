@@ -7,4 +7,4 @@ numpy==1.26.4
 supabase~=0.7.1
 human-id~=0.2.0
 altair<5
-streamlit_extras
+streamlit_extras[buy_me_a_coffee]
