@@ -3,6 +3,7 @@ import requests
 import asyncio
 import aiohttp
 from aiohttp.client_exceptions import InvalidURL
+import ssl
 import ast
 import random
 from collections import Counter
@@ -240,7 +241,14 @@ async def get_tralbum_tags(session, item_url):
 
 
 async def create(bc_url, prioritise_recent_purchasers, purchase_priority, variability, freshness):
-    async with aiohttp.ClientSession() as session:
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
+    ssl_context.set_alpn_protocols(["http/1.1"])  # Avoid HTTP/2 negotiation
+
+    connector = aiohttp.TCPConnector(ssl=ssl_context)
+
+    async with aiohttp.ClientSession(connector=connector) as session:
         query_url = bc_url
         query_title, query_tralbum_type, query_tralbum_id, fans, album_url = await get_info_from_tralbum(session,
                                                                                                          bc_url)
