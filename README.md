@@ -1,5 +1,7 @@
 # Bandcamp Explorer
 
+> **Huge shoutout to [roniqueh](https://github.com/roniqueh)** — the original creator of this tool. This project is built on their brilliant foundation. All credit for the core idea and initial implementation goes to them.
+
 Discover music by exploring who bought a Bandcamp release — and what else they own.
 
 Try it at: https://bc-explorer.app/
